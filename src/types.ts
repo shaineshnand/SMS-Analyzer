@@ -27,7 +27,7 @@ export interface UploadItem {
   size?: string;
   rows?: string | number;
   uploadedAt: string;
-  status: 'processed' | 'error' | 'pending' | 'processing';
+  status: 'processed' | 'error' | 'pending' | 'processing' | 'skipped';
   errorDetails?: string;
   progress?: number;
   stage?: string;
@@ -54,7 +54,7 @@ export interface BatchProgress {
   completed: number;
   currentFile: string;
   succeeded: number;
-  failed: number;
+  skipped: number;
   replaced: number;
 }
 

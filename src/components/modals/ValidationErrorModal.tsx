@@ -21,11 +21,11 @@ export const ValidationErrorModal: React.FC<ValidationErrorModalProps> = ({
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">File could not be counted</h3>
+              <h3 className="text-base font-bold text-slate-900">This file was skipped</h3>
               <p className="text-xs text-slate-500 font-mono mt-0.5">{fileName}</p>
             </div>
           </div>
@@ -34,14 +34,13 @@ export const ValidationErrorModal: React.FC<ValidationErrorModalProps> = ({
           </button>
         </div>
 
-        <div className="bg-rose-50/80 border border-rose-100 rounded-xl p-3.5 text-xs text-rose-800 space-y-1">
-          <p className="font-semibold">What went wrong</p>
+        <div className="bg-amber-50/80 border border-amber-100 rounded-xl p-3.5 text-xs text-amber-900 space-y-1">
+          <p className="font-semibold">Why it was skipped</p>
           <p>{errorDetails}</p>
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed">
-          Check that the file is .xlsx, .xls, or .csv, has at least one data row, and is not password-protected.
-          Fix it and upload that day again — it will replace the failed file in the total.
+          Invalid files do not stop the folder upload. The other daily files in 2024, 2025, and 2026 are still counted.
         </p>
 
         <div className="flex items-center justify-end gap-3 pt-2">

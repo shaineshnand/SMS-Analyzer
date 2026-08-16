@@ -161,7 +161,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div>
               <p className="text-xs font-bold text-slate-800">Show upload results in the header</p>
               <p className="text-[11px] text-slate-500">
-                Alerts when a batch finishes, including how many daily files failed.
+                Alerts when a folder upload finishes, including how many invalid files were skipped.
               </p>
             </div>
           </label>

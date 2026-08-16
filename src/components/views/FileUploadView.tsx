@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { BatchProgress, UploadItem } from '../../types';
+import { collectFilesFromDataTransfer } from '../../utils/collectFiles';
 
 interface FileUploadViewProps {
   history: UploadItem[];
@@ -58,7 +59,8 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
           Daily File Upload
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          One Excel file per day. Each row is one SMS. Select a folder to load three years at once.
+          Select the parent folder that contains <span className="font-semibold text-slate-700">2024, 2025, and 2026</span>,
+          or upload each year folder one after another. Invalid files are skipped — counting does not stop.
         </p>
       </div>
 
@@ -70,10 +72,11 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
               setDragOver(true);
             }}
             onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => {
+            onDrop={async (e) => {
               e.preventDefault();
               setDragOver(false);
-              if (e.dataTransfer.files?.length) takeFiles(e.dataTransfer.files);
+              const dropped = await collectFilesFromDataTransfer(e.dataTransfer);
+              if (dropped.length) takeFiles(dropped);
             }}
             className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all bg-white ${
               dragOver ? 'border-[#006666] bg-teal-50/30' : 'border-slate-300 hover:border-slate-400'
@@ -83,10 +86,10 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
               <UploadCloud className="w-7 h-7 stroke-[1.8]" />
             </div>
 
-            <h3 className="text-base font-bold text-slate-800">Drop daily Excel files here</h3>
+            <h3 className="text-base font-bold text-slate-800">Drop year folders here</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-md">
-              Supported: .xlsx, .xls, .csv. Dates are read from the filename when possible
-              (for example <span className="font-mono">Daily_SMS_2024_05_12.xlsx</span>).
+              Supported: .xlsx, .xls, .csv. Wrong types and broken files are skipped and the rest keep
+              going. Dates can come from the filename or the year folder name.
             </p>
 
             <div className="flex items-center gap-3 mt-6">
@@ -158,12 +161,12 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
                         <div className="flex items-center gap-2.5 font-medium min-w-0">
                           <FileSpreadsheet
                             className={`w-4 h-4 shrink-0 ${
-                              row.status === 'error' ? 'text-rose-500' : 'text-slate-500'
+                              row.status === 'processed' ? 'text-slate-500' : 'text-amber-500'
                             }`}
                           />
                           <span
                             className={`truncate max-w-[280px] ${
-                              row.status === 'error' ? 'text-rose-600 font-semibold' : 'text-slate-800'
+                              row.status === 'processed' ? 'text-slate-800' : 'text-amber-800 font-semibold'
                             }`}
                           >
                             {row.name}
@@ -181,10 +184,10 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
                         ) : (
                           <button
                             onClick={() => onOpenDetails(row)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-100"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-100"
                           >
-                            <AlertCircle className="w-3 h-3 text-rose-600" />
-                            Error
+                            <AlertCircle className="w-3 h-3 text-amber-600" />
+                            Skipped
                           </button>
                         )}
                       </td>
@@ -235,7 +238,7 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
                 <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
                   <span>
                     {batch.succeeded} counted
-                    {batch.failed > 0 ? ` · ${batch.failed} failed` : ''}
+                    {batch.skipped > 0 ? ` · ${batch.skipped} skipped` : ''}
                     {batch.replaced > 0 ? ` · ${batch.replaced} replaced` : ''}
                   </span>
                   <span>{progress}%</span>
@@ -249,16 +252,16 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
               </div>
             ) : (
               <p className="text-xs text-slate-500 leading-relaxed">
-                Idle. Re-uploading a file for the same date replaces that day so three-year totals stay
-                accurate.
+                Idle. You can upload 2024, then 2025, then 2026 — totals merge. Invalid files are skipped
+                and never stop the batch.
               </p>
             )}
 
             <div className="rounded-xl bg-slate-50 border border-slate-100 p-3.5 text-xs text-slate-600 space-y-1.5">
               <p className="font-bold text-slate-800">How spend is calculated</p>
-              <p>1. Count data rows in each daily file</p>
-              <p>2. Multiply by the SMS rate in Settings</p>
-              <p>3. Sum every loaded day for the 3-year total</p>
+              <p>1. Count data rows in each valid daily file</p>
+              <p>2. Skip anything that is not Excel/CSV or will not parse</p>
+              <p>3. Multiply remaining SMS rows by the rate in Settings</p>
             </div>
           </div>
         </div>

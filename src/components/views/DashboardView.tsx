@@ -279,10 +279,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div className="flex items-start gap-2.5 min-w-0">
                     <div
                       className={`p-2 rounded-lg shrink-0 ${
-                        item.status === 'error' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'
+                        item.status === 'processed' ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'
                       }`}
                     >
-                      {item.status === 'error' ? <AlertCircle className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                      {item.status === 'processed' ? <FileText className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-slate-800 truncate max-w-[160px]">{item.name}</p>
@@ -294,10 +294,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             <span className="text-emerald-600 font-medium">Counted</span>
                           </>
                         )}
-                        {item.status === 'error' && (
+                        {item.status === 'skipped' && (
                           <>
                             <span>•</span>
-                            <span className="text-rose-500 font-medium">Failed</span>
+                            <span className="text-amber-700 font-medium">Skipped</span>
                           </>
                         )}
                       </div>
@@ -357,7 +357,7 @@ function EmptyChartPrompt({ onUpload }: { onUpload: () => void }) {
     <div className="h-48 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 flex flex-col items-center justify-center text-center px-6">
       <p className="text-sm font-semibold text-slate-700">No daily files loaded yet</p>
       <p className="text-xs text-slate-500 mt-1 max-w-sm">
-        Select a folder of daily Excel files — about 1,095 files for 3 years — and totals will appear here.
+        Select the folder that contains 2024, 2025, and 2026. Invalid files are skipped automatically.
       </p>
       <button
         onClick={onUpload}

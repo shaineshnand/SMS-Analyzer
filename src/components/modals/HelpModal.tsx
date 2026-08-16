@@ -34,10 +34,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, currency,
           <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
             <FolderOpen className="w-4 h-4 text-[#006666] shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-slate-800">Load three years of daily files</p>
+              <p className="font-bold text-slate-800">Load the 2024, 2025, and 2026 folders</p>
               <p className="mt-0.5">
-                Use Select Folder on the upload page. About 1,095 Excel files cover three years. The app
-                counts rows in each file and keeps one total per day.
+                Select the parent folder that contains all three years, or upload each year folder in turn.
+                Totals merge. If a file is the wrong type or will not parse, it is skipped and counting continues.
               </p>
             </div>
           </div>

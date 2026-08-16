@@ -126,19 +126,30 @@ function parseDateFromSheet(header: unknown[] | null, dataRows: unknown[][]): st
 }
 
 export async function parseSmsFile(file: File, skipHeaderRow: boolean): Promise<ParseSmsResult> {
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+  let workbook: XLSX.WorkBook;
+  try {
+    const buffer = await file.arrayBuffer();
+    workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+  } catch {
+    throw new Error('File could not be read as Excel or CSV');
+  }
+
   if (!workbook.SheetNames.length) {
     throw new Error('Workbook has no sheets');
   }
 
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    defval: null,
-    raw: true,
-    blankrows: false,
-  });
+  let rows: unknown[][];
+  try {
+    rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      defval: null,
+      raw: true,
+      blankrows: false,
+    });
+  } catch {
+    throw new Error('Sheet could not be read — skipped');
+  }
 
   const nonEmpty = rows.filter(
     (row) => Array.isArray(row) && row.some((cell) => !isBlank(cell))
@@ -157,9 +168,11 @@ export async function parseSmsFile(file: File, skipHeaderRow: boolean): Promise<
   }
 
   const date =
-    parseDateFromFileName(file.name) ||
-    parseDateFromSheet(shouldSkipHeader ? header : null, dataRows) ||
-    toIsoDate(new Date(file.lastModified));
+    parseDateFromUpload(file) || parseDateFromSheet(shouldSkipHeader ? header : null, dataRows);
+
+  if (!date) {
+    throw new Error('No date found in the filename, year folder, or sheet');
+  }
 
   return {
     fileName: file.name,
@@ -168,6 +181,46 @@ export async function parseSmsFile(file: File, skipHeaderRow: boolean): Promise<
   };
 }
 
+export function parseDateFromUpload(file: File): string | null {
+  const relative = file.webkitRelativePath || file.name;
+  return (
+    parseDateFromFileName(file.name) ||
+    parseDateFromFileName(relative) ||
+    parseDateFromFolderAndName(relative, file.name)
+  );
+}
+
+function parseDateFromFolderAndName(relativePath: string, fileName: string): string | null {
+  const yearMatch = relativePath.match(/(?:^|\/)(20\d{2})(?:\/|$)/);
+  if (!yearMatch) return null;
+  const year = Number(yearMatch[1]);
+  const base = fileName.replace(/\.[^.]+$/, '');
+  const monthDay = base.match(/(\d{1,2})[-_.](\d{1,2})/);
+  if (!monthDay) return null;
+  const first = Number(monthDay[1]);
+  const second = Number(monthDay[2]);
+  if (second > 12) return toValidIso(year, first, second);
+  return toValidIso(year, second, first);
+}
+
 export function isSpreadsheetFile(file: File): boolean {
   return /\.(xlsx|xls|csv)$/i.test(file.name);
+}
+
+export function isNoiseFile(fileName: string): boolean {
+  const name = fileName.toLowerCase();
+  return (
+    name.startsWith('~$') ||
+    name.startsWith('.') ||
+    name === 'thumbs.db' ||
+    name === 'desktop.ini' ||
+    name === '.ds_store'
+  );
+}
+
+export function skipReason(file: File): string | null {
+  if (isNoiseFile(file.name)) return 'Ignored system or temp file';
+  if (!isSpreadsheetFile(file)) return 'Not an Excel or CSV file';
+  if (file.size === 0) return 'Empty file';
+  return null;
 }

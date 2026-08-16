@@ -20,7 +20,7 @@ import {
   UserProfile,
 } from './types';
 import { ADMIN_USER, CORPORATE_USER, DEFAULT_SETTINGS } from './data/mockData';
-import { isSpreadsheetFile, parseSmsFile } from './utils/parseSmsFile';
+import { isNoiseFile, parseSmsFile, skipReason } from './utils/parseSmsFile';
 import {
   availableYears,
   buildMetrics,
@@ -59,7 +59,7 @@ function toHistory(days: DailySmsRecord[], failures: FailedUpload[]): UploadItem
     name: item.fileName,
     rows: '-',
     uploadedAt: formatDateTime(item.uploadedAt),
-    status: 'error',
+    status: 'skipped',
     errorDetails: item.errorDetails,
   }));
 
@@ -143,12 +143,13 @@ export default function App() {
 
   const handleUploadFiles = async (files: File[]) => {
     if (processingRef.current) return;
-    const spreadsheetFiles = files.filter(isSpreadsheetFile);
-    if (!spreadsheetFiles.length) {
+
+    const candidates = files.filter((file) => !isNoiseFile(file.name));
+    if (!candidates.length) {
       pushNotification({
-        title: 'No spreadsheet files found',
-        desc: 'Upload .xlsx, .xls, or .csv files. Each row is counted as one SMS.',
-        type: 'error',
+        title: 'No files to count',
+        desc: 'That folder had no usable files. Choose the 2024, 2025, or 2026 folder — or the parent that contains all three.',
+        type: 'info',
       });
       return;
     }
@@ -157,83 +158,108 @@ export default function App() {
     cancelRef.current = false;
     setActiveTab('upload');
     setBatch({
-      total: spreadsheetFiles.length,
+      total: candidates.length,
       completed: 0,
-      currentFile: spreadsheetFiles[0].name,
+      currentFile: candidates[0].name,
       succeeded: 0,
-      failed: 0,
+      skipped: 0,
       replaced: 0,
     });
 
     const nextDays = new Map<string, DailySmsRecord>(days.map((day) => [day.date, day]));
     const nextFailures: FailedUpload[] = [...failures];
     let succeeded = 0;
-    let failed = 0;
+    let skipped = 0;
     let replaced = 0;
 
-    for (let i = 0; i < spreadsheetFiles.length; i++) {
-      if (cancelRef.current) break;
-      const file = spreadsheetFiles[i];
-      const uploadedAt = new Date().toISOString();
+    try {
+      for (let i = 0; i < candidates.length; i++) {
+        if (cancelRef.current) break;
+        const file = candidates[i];
+        const uploadedAt = new Date().toISOString();
 
-      setBatch({
-        total: spreadsheetFiles.length,
-        completed: i,
-        currentFile: file.name,
-        succeeded,
-        failed,
-        replaced,
-      });
+        setBatch({
+          total: candidates.length,
+          completed: i,
+          currentFile: file.name,
+          succeeded,
+          skipped,
+          replaced,
+        });
 
-      try {
-        const parsed = await parseSmsFile(file, settings.skipHeaderRow);
-        if (nextDays.has(parsed.date)) replaced += 1;
-        nextDays.set(parsed.date, {
-          id: `day-${parsed.date}`,
-          date: parsed.date,
-          fileName: parsed.fileName,
-          smsCount: parsed.smsCount,
-          uploadedAt,
-        });
-        succeeded += 1;
-      } catch (error) {
-        failed += 1;
-        nextFailures.unshift({
-          id: `fail-${Date.now()}-${i}`,
-          fileName: file.name,
-          uploadedAt,
-          errorDetails: error instanceof Error ? error.message : 'Could not read this file',
-        });
+        try {
+          const reason = skipReason(file);
+          if (reason) {
+            skipped += 1;
+            if (!isNoiseFile(file.name)) {
+              nextFailures.unshift({
+                id: `skip-${Date.now()}-${i}`,
+                fileName: file.webkitRelativePath || file.name,
+                uploadedAt,
+                errorDetails: reason,
+              });
+            }
+            continue;
+          }
+
+          const parsed = await parseSmsFile(file, settings.skipHeaderRow);
+          if (nextDays.has(parsed.date)) replaced += 1;
+          nextDays.set(parsed.date, {
+            id: `day-${parsed.date}`,
+            date: parsed.date,
+            fileName: parsed.fileName,
+            smsCount: parsed.smsCount,
+            uploadedAt,
+          });
+          succeeded += 1;
+        } catch (error) {
+          skipped += 1;
+          nextFailures.unshift({
+            id: `skip-${Date.now()}-${i}`,
+            fileName: file.webkitRelativePath || file.name,
+            uploadedAt,
+            errorDetails: error instanceof Error ? error.message : 'Invalid file format — skipped',
+          });
+        }
+
+        if (i % 3 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
       }
 
-      if (i % 3 === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+      const sortedDays = [...nextDays.values()].sort((a, b) => b.date.localeCompare(a.date));
+      setDays(sortedDays);
+      setFailures(nextFailures.slice(0, 300));
+
+      if (cancelRef.current) {
+        pushNotification({
+          title: 'Upload cancelled',
+          desc: `Saved ${succeeded} day file${succeeded === 1 ? '' : 's'} before cancel.`,
+          type: 'info',
+        });
+        return;
       }
-    }
 
-    const sortedDays = [...nextDays.values()].sort((a, b) => b.date.localeCompare(a.date));
-    setDays(sortedDays);
-    setFailures(nextFailures.slice(0, 200));
-    setBatch(null);
-    processingRef.current = false;
-
-    if (cancelRef.current) {
       pushNotification({
-        title: 'Upload cancelled',
-        desc: `Saved ${succeeded} day file${succeeded === 1 ? '' : 's'} before cancel.`,
+        title: `Counted ${succeeded} daily file${succeeded === 1 ? '' : 's'}`,
+        desc:
+          skipped > 0
+            ? `Skipped ${skipped} invalid or non-Excel file${skipped === 1 ? '' : 's'}. The rest of the folder finished.`
+            : `Spend updated at ${settings.currency} ${settings.smsRate.toFixed(2)} per SMS.`,
+        type: succeeded > 0 ? 'success' : 'info',
+      });
+    } catch {
+      setDays([...nextDays.values()].sort((a, b) => b.date.localeCompare(a.date)));
+      setFailures(nextFailures.slice(0, 300));
+      pushNotification({
+        title: 'Folder upload finished with skips',
+        desc: `Saved ${succeeded} valid day file${succeeded === 1 ? '' : 's'}. Invalid files were skipped and did not stop the batch.`,
         type: 'info',
       });
-      return;
+    } finally {
+      setBatch(null);
+      processingRef.current = false;
     }
-
-    pushNotification({
-      title: `Processed ${succeeded} of ${spreadsheetFiles.length} files`,
-      desc:
-        failed > 0
-          ? `${failed} file${failed === 1 ? '' : 's'} failed. Re-upload those days to include them in the total.`
-          : `Spend updated at ${settings.currency} ${settings.smsRate.toFixed(2)} per SMS.`,
-      type: failed > 0 ? 'error' : 'success',
-    });
   };
 
   const handleCancelProcessing = () => {
