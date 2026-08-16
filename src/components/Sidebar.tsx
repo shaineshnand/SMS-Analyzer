@@ -68,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               SMS Analyzer
             </h1>
             <p className="text-[12px] font-semibold text-[#006666] tracking-tight">
-              Precision Metrics
+              Daily SMS Spend
             </p>
           </div>
         </div>

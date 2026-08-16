@@ -1,49 +1,45 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Download, FileSpreadsheet, Code, FileText, CheckCircle2, X } from 'lucide-react';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultFormat?: 'excel' | 'csv' | 'pdf';
+  hasData: boolean;
+  onDownload: (format: 'excel' | 'csv' | 'pdf') => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
   isOpen,
   onClose,
   defaultFormat = 'excel',
+  hasData,
+  onDownload,
 }) => {
   const [format, setFormat] = useState<'excel' | 'csv' | 'pdf'>(defaultFormat);
   const [downloading, setDownloading] = useState(false);
   const [downloadComplete, setDownloadComplete] = useState(false);
 
+  useEffect(() => {
+    setFormat(defaultFormat);
+  }, [defaultFormat, isOpen]);
+
   if (!isOpen) return null;
 
   const handleDownload = () => {
+    if (!hasData) return;
     setDownloading(true);
+    onDownload(format);
+    setDownloading(false);
+    setDownloadComplete(true);
     setTimeout(() => {
-      // Create a mock downloadable blob file
-      const csvContent =
-        'Year,Month,SMS Count,Total Cost (FJD),Status\n2024,January,25000,2500.00,Completed\n2024,February,22000,2200.00,Completed\n2024,March,Pending,0.00,Pending\n2025,January,30000,3000.00,Completed\n';
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `SMS_Cost_Report_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : format}`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setDownloading(false);
-      setDownloadComplete(true);
-      setTimeout(() => {
-        setDownloadComplete(false);
-        onClose();
-      }, 1500);
-    }, 800);
+      setDownloadComplete(false);
+      onClose();
+    }, 900);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -51,8 +47,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <Download className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Export Analytics Data</h3>
-              <p className="text-xs text-slate-500">Download formatted financial and volume datasets.</p>
+              <h3 className="text-base font-bold text-slate-900">Export spend totals</h3>
+              <p className="text-xs text-slate-500">Download monthly SMS count and cost from loaded files.</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
@@ -60,13 +56,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </button>
         </div>
 
+        {!hasData && (
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl p-3">
+            Upload daily Excel files first. There is nothing to export yet.
+          </p>
+        )}
+
         <div className="space-y-2.5">
           <label className="block text-xs font-bold text-slate-700">Choose File Format</label>
           <div className="grid grid-cols-3 gap-2.5">
             {[
               { id: 'excel' as const, label: 'Excel (.xlsx)', icon: FileSpreadsheet, color: 'text-emerald-600' },
               { id: 'csv' as const, label: 'CSV (.csv)', icon: Code, color: 'text-blue-600' },
-              { id: 'pdf' as const, label: 'PDF (.pdf)', icon: FileText, color: 'text-rose-600' },
+              { id: 'pdf' as const, label: 'Text (.txt)', icon: FileText, color: 'text-rose-600' },
             ].map((f) => {
               const Icon = f.icon;
               const isSelected = format === f.id;
@@ -97,8 +99,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </button>
           <button
             onClick={handleDownload}
-            disabled={downloading}
-            className="flex items-center gap-2 px-5 py-2 bg-[#006666] hover:bg-[#005555] text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+            disabled={downloading || !hasData}
+            className="flex items-center gap-2 px-5 py-2 bg-[#006666] hover:bg-[#005555] disabled:opacity-40 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
           >
             {downloadComplete ? (
               <>

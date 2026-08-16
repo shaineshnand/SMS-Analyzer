@@ -15,7 +15,7 @@ export interface MetricCardData {
   value: string;
   trend?: {
     value: string;
-    isPositive: boolean; // green vs red
+    isPositive: boolean;
     isNeutral?: boolean;
     label: string;
   };
@@ -31,37 +31,87 @@ export interface UploadItem {
   errorDetails?: string;
   progress?: number;
   stage?: string;
+  date?: string;
+}
+
+export interface DailySmsRecord {
+  id: string;
+  date: string;
+  fileName: string;
+  smsCount: number;
+  uploadedAt: string;
+}
+
+export interface FailedUpload {
+  id: string;
+  fileName: string;
+  uploadedAt: string;
+  errorDetails: string;
+}
+
+export interface BatchProgress {
+  total: number;
+  completed: number;
+  currentFile: string;
+  succeeded: number;
+  failed: number;
+  replaced: number;
 }
 
 export interface ReportEntry {
   id: string;
   year: number;
   month: string;
-  smsCount: number | string; // e.g. 25000 or "Pending"
-  cost: number | null; // e.g. 2500.00
+  monthIndex: number;
+  smsCount: number;
+  cost: number;
   status: 'completed' | 'pending';
 }
 
-export interface CarrierPerformance {
-  carrier: string;
-  region: string;
-  volume: number;
-  deliveryRate: number; // e.g. 98.2
-  avgCostPerMsg: number; // e.g. 0.0075
-  totalSpend: number; // e.g. 9337.50
+export interface YearlySpend {
+  year: number;
+  smsCount: number;
+  cost: number;
+  days: number;
 }
 
 export interface VolumeDay {
   date: string;
+  isoDate: string;
   volume: number;
+  cost: number;
   isPeak?: boolean;
+}
+
+export interface TrendPoint {
+  label: string;
+  smsCount: number;
+  cost: number;
+  year: number;
+}
+
+export interface CoverageStats {
+  dayCount: number;
+  firstDate: string | null;
+  lastDate: string | null;
+  spanDays: number;
+  missingDays: number;
+  completeness: number;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  desc: string;
+  time: string;
+  type: 'success' | 'error' | 'info';
 }
 
 export interface AppSettings {
   currency: string;
   smsRate: number;
   rateUnit: string;
-  deliveryRateThreshold: number;
+  skipHeaderRow: boolean;
   notificationsEnabled: boolean;
   theme: 'light' | 'system';
 }

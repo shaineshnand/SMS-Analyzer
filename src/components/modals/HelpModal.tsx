@@ -1,16 +1,19 @@
 import React from 'react';
-import { HelpCircle, X, CheckCircle2, ShieldCheck, FileSpreadsheet, BarChart2 } from 'lucide-react';
+import { HelpCircle, X, Coins, FileSpreadsheet, FolderOpen } from 'lucide-react';
+import { formatRate } from '../../utils/format';
 
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  currency: string;
+  rate: number;
 }
 
-export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
+export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, currency, rate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -18,8 +21,8 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
               <HelpCircle className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">SMS Analyzer Knowledge Base</h3>
-              <p className="text-xs text-slate-500">System overview &amp; calculation rules.</p>
+              <h3 className="text-base font-bold text-slate-900">How SMS spend is calculated</h3>
+              <p className="text-xs text-slate-500">One daily Excel file. Each row is one SMS.</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
@@ -29,11 +32,12 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
 
         <div className="space-y-3 text-xs text-slate-600">
           <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-            <BarChart2 className="w-4 h-4 text-[#006666] shrink-0 mt-0.5" />
+            <FolderOpen className="w-4 h-4 text-[#006666] shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-slate-800">Cost &amp; Rate Calculation</p>
+              <p className="font-bold text-slate-800">Load three years of daily files</p>
               <p className="mt-0.5">
-                SMS Costs are evaluated dynamically using standard rates (default FJD $0.10/SMS).
+                Use Select Folder on the upload page. About 1,095 Excel files cover three years. The app
+                counts rows in each file and keeps one total per day.
               </p>
             </div>
           </div>
@@ -41,19 +45,22 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
           <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
             <FileSpreadsheet className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-slate-800">Batch Spreadsheet Ingestion</p>
+              <p className="font-bold text-slate-800">Dates come from the filename</p>
               <p className="mt-0.5">
-                Files must contain valid headers: <code className="font-mono text-[11px] bg-slate-200 px-1 py-0.5 rounded">Dest_Network</code> and <code className="font-mono text-[11px] bg-slate-200 px-1 py-0.5 rounded">Cost_Per_Msg</code>.
+                Names like <code className="font-mono text-[11px] bg-slate-200 px-1 py-0.5 rounded">Daily_SMS_2024_05_12.xlsx</code>{' '}
+                or <code className="font-mono text-[11px] bg-slate-200 px-1 py-0.5 rounded">2024-05-12.csv</code> work.
+                If the name has no date, a date column in the sheet is used.
               </p>
             </div>
           </div>
 
           <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <Coins className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-slate-800">Carrier SLA Monitoring</p>
+              <p className="font-bold text-slate-800">Cost = SMS count × rate</p>
               <p className="mt-0.5">
-                Carriers with delivery rates below 95% are automatically flagged with warning states.
+                The current rate is {formatRate(rate, currency)} per message. Change it in Settings and every
+                loaded day is recalculated. Message text is not stored.
               </p>
             </div>
           </div>
