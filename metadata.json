@@ -1,0 +1,6 @@
+{
+  "name": "SMS Cost Analyzer",
+  "description": "Enterprise SMS processing metrics, validation health, carrier performance, and cost analytics dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
