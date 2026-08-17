@@ -6,7 +6,7 @@ interface ExportModalProps {
   onClose: () => void;
   defaultFormat?: 'excel' | 'csv' | 'pdf';
   hasData: boolean;
-  onDownload: (format: 'excel' | 'csv' | 'pdf') => void;
+  onDownload: (format: 'excel' | 'csv' | 'pdf') => void | Promise<void>;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -26,16 +26,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!hasData) return;
     setDownloading(true);
-    onDownload(format);
-    setDownloading(false);
-    setDownloadComplete(true);
-    setTimeout(() => {
-      setDownloadComplete(false);
-      onClose();
-    }, 900);
+    try {
+      await onDownload(format);
+      setDownloadComplete(true);
+      setTimeout(() => {
+        setDownloadComplete(false);
+        onClose();
+      }, 900);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -48,7 +51,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">Export spend totals</h3>
-              <p className="text-xs text-slate-500">Download monthly SMS count and cost from loaded files.</p>
+              <p className="text-xs text-slate-500">Excel includes year-end totals and charts. CSV is the same numbers without graphs.</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">

@@ -47,9 +47,8 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, currency,
             <div>
               <p className="font-bold text-slate-800">Dates come from the filename</p>
               <p className="mt-0.5">
-                Names like <code className="font-mono text-[11px] bg-slate-200 px-1 py-0.5 rounded">Daily_SMS_2024_05_12.xlsx</code>{' '}
-                or <code className="font-mono text-[11px] bg-slate-200 px-1 py-0.5 rounded">2024-05-12.csv</code> work.
-                If the name has no date, a date column in the sheet is used.
+                Daily files are named <code className="font-mono text-[11px] bg-slate-200 px-1 py-0.5 rounded">SMS_COMMS_20240617</code>
+                (year, month, day). That date is used for the day total. CSV and Excel both work.
               </p>
             </div>
           </div>

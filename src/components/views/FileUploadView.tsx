@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { BatchProgress, UploadItem } from '../../types';
 import { collectFilesFromDataTransfer } from '../../utils/collectFiles';
+import { ResetDataButton } from '../ResetDataButton';
 
 interface FileUploadViewProps {
   history: UploadItem[];
@@ -88,8 +89,8 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
 
             <h3 className="text-base font-bold text-slate-800">Drop year folders here</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-md">
-              Supported: .xlsx, .xls, .csv. Wrong types and broken files are skipped and the rest keep
-              going. Dates can come from the filename or the year folder name.
+              Daily files look like <span className="font-mono text-slate-600">SMS_COMMS_20240617.csv</span>.
+              Wrong types and broken files are skipped and the rest keep going.
             </p>
 
             <div className="flex items-center gap-3 mt-6">
@@ -124,16 +125,14 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between gap-3">
               <h3 className="text-base font-bold text-slate-800 tracking-tight">Processed Days</h3>
-              {history.length > 0 && (
-                <button
-                  onClick={onClearAll}
-                  className="text-xs font-semibold text-rose-600 hover:text-rose-800"
-                >
-                  Clear all
-                </button>
-              )}
+              <ResetDataButton
+                onReset={onClearAll}
+                dayCount={history.filter((item) => item.status === 'processed').length}
+                disabled={Boolean(batch)}
+                variant="compact"
+              />
             </div>
 
             <div className="overflow-x-auto">
@@ -257,11 +256,19 @@ export const FileUploadView: React.FC<FileUploadViewProps> = ({
               </p>
             )}
 
-            <div className="rounded-xl bg-slate-50 border border-slate-100 p-3.5 text-xs text-slate-600 space-y-1.5">
-              <p className="font-bold text-slate-800">How spend is calculated</p>
-              <p>1. Count data rows in each valid daily file</p>
-              <p>2. Skip anything that is not Excel/CSV or will not parse</p>
-              <p>3. Multiply remaining SMS rows by the rate in Settings</p>
+            <div className="rounded-xl bg-rose-50 border border-rose-100 p-3.5 space-y-3">
+              <div>
+                <p className="text-xs font-bold text-rose-800">Reset database</p>
+                <p className="text-[11px] text-rose-700/80 mt-0.5 leading-relaxed">
+                  Clears every counted day from this browser so you can test, then load the final 2024–2026
+                  folders. The SMS rate in Settings is kept.
+                </p>
+              </div>
+              <ResetDataButton
+                onReset={onClearAll}
+                dayCount={history.filter((item) => item.status === 'processed').length}
+                disabled={Boolean(batch)}
+              />
             </div>
           </div>
         </div>

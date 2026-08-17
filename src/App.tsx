@@ -42,7 +42,7 @@ import {
   saveFailures,
   saveSettings,
 } from './utils/storage';
-import { exportDailyExcel, exportMonthlyCsv, exportMonthlyExcel, exportSummaryText } from './utils/exportData';
+import { exportMonthlyCsv, exportSpendWorkbook, exportSummaryText } from './utils/exportData';
 
 function toHistory(days: DailySmsRecord[], failures: FailedUpload[]): UploadItem[] {
   const processed: UploadItem[] = days.map((day) => ({
@@ -81,7 +81,6 @@ export default function App() {
   const [errorModalFile, setErrorModalFile] = useState<UploadItem | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormat, setExportFormat] = useState<'excel' | 'csv' | 'pdf'>('excel');
-  const [exportScope, setExportScope] = useState<'monthly' | 'daily'>('monthly');
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   const cancelRef = useRef(false);
@@ -272,23 +271,29 @@ export default function App() {
   };
 
   const handleClearAll = () => {
+    cancelRef.current = true;
+    processingRef.current = false;
+    setBatch(null);
     setDays([]);
     setFailures([]);
     clearStoredData();
-    pushNotification({
-      title: 'All daily files cleared',
-      desc: 'Totals are back at zero. Upload Excel files to rebuild spend.',
-      type: 'info',
-    });
+    setNotifications([
+      {
+        id: `n-reset-${Date.now()}`,
+        title: 'All SMS data reset',
+        desc: 'Counts are back at zero. The SMS rate is unchanged. Upload the final year folders when you are ready.',
+        time: 'Just now',
+        type: 'info',
+      },
+    ]);
   };
 
-  const handleOpenExport = (format: 'excel' | 'csv' | 'pdf' = 'excel', scope: 'monthly' | 'daily' = 'monthly') => {
+  const handleOpenExport = (format: 'excel' | 'csv' | 'pdf' = 'excel') => {
     setExportFormat(format);
-    setExportScope(scope);
     setShowExportModal(true);
   };
 
-  const handleExport = (format: 'excel' | 'csv' | 'pdf') => {
+  const handleExport = async (format: 'excel' | 'csv' | 'pdf') => {
     const allReports = buildMonthlyReports(days, settings.smsRate);
     if (format === 'csv') {
       exportMonthlyCsv(allReports, settings.currency);
@@ -298,11 +303,12 @@ export default function App() {
       exportSummaryText(allReports, settings.currency);
       return;
     }
-    if (exportScope === 'daily') {
-      exportDailyExcel(days, settings.smsRate, settings.currency);
-      return;
-    }
-    exportMonthlyExcel(allReports, settings.currency);
+    await exportSpendWorkbook({
+      reports: allReports,
+      days,
+      currency: settings.currency,
+      rate: settings.smsRate,
+    });
   };
 
   return (
@@ -337,7 +343,7 @@ export default function App() {
               currency={settings.currency}
               hasData={days.length > 0}
               setActiveTab={setActiveTab}
-              onExport={() => handleOpenExport('excel', 'monthly')}
+              onExport={() => handleOpenExport('excel')}
               onSelectFiles={handleUploadFiles}
             />
           )}
@@ -367,7 +373,7 @@ export default function App() {
               currency={settings.currency}
               rate={settings.smsRate}
               hasData={days.length > 0}
-              onExport={() => handleOpenExport('csv', 'monthly')}
+              onExport={() => handleOpenExport('csv')}
             />
           )}
 
@@ -377,7 +383,7 @@ export default function App() {
               searchQuery={searchQuery}
               currency={settings.currency}
               hasData={days.length > 0}
-              onExport={(format) => handleOpenExport(format, 'monthly')}
+              onExport={(format) => handleOpenExport(format)}
             />
           )}
 
@@ -389,6 +395,7 @@ export default function App() {
               onToggleUser={handleToggleUser}
               dayCount={days.length}
               totalSms={days.reduce((sum, day) => sum + day.smsCount, 0)}
+              onResetData={handleClearAll}
             />
           )}
         </main>

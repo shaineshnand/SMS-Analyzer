@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Save, CheckCircle, Coins, Bell, UserCheck, FileSpreadsheet } from 'lucide-react';
+import { Save, CheckCircle, Coins, Bell, UserCheck, FileSpreadsheet, RotateCcw } from 'lucide-react';
 import { AppSettings, UserProfile } from '../../types';
 import { formatMoney, formatRate } from '../../utils/format';
+import { ResetDataButton } from '../ResetDataButton';
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -10,6 +11,7 @@ interface SettingsViewProps {
   onToggleUser: () => void;
   dayCount: number;
   totalSms: number;
+  onResetData: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -19,6 +21,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onToggleUser,
   dayCount,
   totalSms,
+  onResetData,
 }) => {
   const [formData, setFormData] = useState<AppSettings>({ ...settings });
   const [saved, setSaved] = useState(false);
@@ -183,6 +186,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
         </div>
       </form>
+
+      <div className="bg-white rounded-2xl border border-rose-200 shadow-xs p-6 space-y-4">
+        <div className="flex items-center gap-3 pb-4 border-b border-rose-100">
+          <RotateCcw className="w-5 h-5 text-rose-600" />
+          <h2 className="text-base font-bold text-slate-800">Reset database</h2>
+        </div>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          Wipe all counted days from this browser. Use this after testing, then upload the final 2024, 2025,
+          and 2026 folders. Your SMS rate is not changed.
+        </p>
+        <ResetDataButton onReset={onResetData} dayCount={dayCount} />
+      </div>
     </div>
   );
 };

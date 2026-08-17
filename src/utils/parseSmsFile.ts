@@ -47,7 +47,14 @@ function toValidIso(year: number, month: number, day: number): string | null {
   return `${year}-${pad(month)}-${pad(day)}`;
 }
 
+const SMS_COMMS_DATE = /SMS_COMMS_(20\d{2})(\d{2})(\d{2})/i;
+
 export function parseDateFromFileName(fileName: string): string | null {
+  const smsComms = fileName.match(SMS_COMMS_DATE);
+  if (smsComms) {
+    return toValidIso(Number(smsComms[1]), Number(smsComms[2]), Number(smsComms[3]));
+  }
+
   const base = fileName.replace(/\.[^.]+$/, '');
 
   const iso = base.match(/(20\d{2})[-_./](\d{1,2})[-_./](\d{1,2})/);
@@ -129,7 +136,7 @@ export async function parseSmsFile(file: File, skipHeaderRow: boolean): Promise<
   let workbook: XLSX.WorkBook;
   try {
     const buffer = await file.arrayBuffer();
-    workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    workbook = readWorkbook(file, buffer);
   } catch {
     throw new Error('File could not be read as Excel or CSV');
   }
@@ -203,8 +210,24 @@ function parseDateFromFolderAndName(relativePath: string, fileName: string): str
   return toValidIso(year, second, first);
 }
 
+function isCsvLike(fileName: string): boolean {
+  return /\.(csv|txt)$/i.test(fileName) || (isSmsCommsFile(fileName) && !/\.(xlsx|xls)$/i.test(fileName));
+}
+
+function readWorkbook(file: File, buffer: ArrayBuffer): XLSX.WorkBook {
+  if (isCsvLike(file.name)) {
+    const text = new TextDecoder('utf-8').decode(buffer);
+    return XLSX.read(text, { type: 'string', raw: false });
+  }
+  return XLSX.read(buffer, { type: 'array', cellDates: true });
+}
+
+export function isSmsCommsFile(fileName: string): boolean {
+  return SMS_COMMS_DATE.test(fileName);
+}
+
 export function isSpreadsheetFile(file: File): boolean {
-  return /\.(xlsx|xls|csv)$/i.test(file.name);
+  return /\.(xlsx|xls|csv|txt)$/i.test(file.name) || isSmsCommsFile(file.name);
 }
 
 export function isNoiseFile(fileName: string): boolean {
